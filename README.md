@@ -21,7 +21,7 @@ Vulnex is a vulnerability scanning and reporting tool built with Python and Stre
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/vulnex.git
+git clone https://github.com/AbyssTraveler08/vulnex.git
 cd vulnex
 python3 -m venv .venv
 source .venv/bin/activate
