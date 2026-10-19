@@ -1,21 +1,34 @@
 # VULNEX
 ### Vulnerability Assessment, Endpoint Inventory & Security Reporting
 
-VULNEX is a Python-based security assessment platform for authorized network discovery, endpoint inventory, vulnerability context, risk prioritization, remediation tracking, and report generation. The repository includes the Phase 9 Windows-agent/Python-detection fixes alongside the existing cross-platform agent and assessment workflows.
+VULNEX is a Python-based security assessment platform for authorized network discovery, endpoint inventory, vulnerability context, risk prioritization, remediation tracking, and report generation. The repository includes the Phase 9 Windows-agent/Python-detection work alongside cross-platform agent and assessment workflows.
 
 > **Authorized use only:** Run assessments only against systems and networks you own or have explicit permission to test.
 
-## What VULNEX does
+## Highlights
 
-- **Network discovery and assessment** — integrates with Nmap to discover and assess reachable hosts.
-- **Cross-platform endpoint inventory** — agent launchers support macOS, Linux, and Windows PowerShell.
-- **Hardware and software inventory** — collects system identity, CPU/memory/disk information, network configuration, installed software, services, and local account metadata where supported.
-- **Agent management** — registers endpoints, reports heartbeats, and supports persistent background operation and restart after reboot when installed using the platform's service/task mechanism.
-- **Vulnerability context and risk** — combines CVE information and CISA Known Exploited Vulnerabilities (KEV) context with project risk-scoring logic.
-- **Remediation tracking** — records remediation status and related assessment history.
-- **Authentication and role-based access control** — user approval flow and separate administrator/user capabilities.
-- **Reporting** — generates PDF assessment and device reports.
-- **Local persistence and tests** — keeps application state under the local project data directories and includes automated tests.
+- **Network discovery and assessment** using Nmap to identify reachable hosts and exposed services.
+- **Cross-platform endpoint inventory** with agent workflows for macOS, Linux, and Windows PowerShell.
+- **Hardware and software inventory** including system details, network configuration, installed software, services, and supported user/account metadata.
+- **Endpoint agent management** for enrollment, heartbeats, and platform-specific background operation.
+- **Vulnerability context and risk prioritization** using CVE information, CISA Known Exploited Vulnerabilities (KEV) context when available, and project risk-scoring logic.
+- **Remediation tracking** for recording finding status and assessment history.
+- **Authentication and role-based access control** with administrator and standard-user capabilities.
+- **PDF reporting** for assessment and device findings.
+- **Local persistence and automated tests** for core application workflows.
+
+## Screenshots
+
+The screenshots below document the VULNEX interface and example assessment workflows. Before publishing screenshots, ensure that they have been redacted and do not reveal private network details, hostnames, MAC addresses, server addresses, account identifiers, enrollment tokens, or other secrets.
+
+Once the redacted images are uploaded to `docs/screenshots/`, add them here using relative paths, for example:
+
+```markdown
+![Network discovery dashboard](docs/screenshots/vulnex_screenshot_01_redacted.png)
+![Endpoint agent management](docs/screenshots/vulnex_screenshot_02_redacted.png)
+![Local machine assessment](docs/screenshots/vulnex_screenshot_03_redacted.png)
+![Vulnerability dashboard](docs/screenshots/vulnex_screenshot_04_redacted.png)
+```
 
 ## Project layout
 
@@ -33,26 +46,26 @@ VULNEX is a Python-based security assessment platform for authorized network dis
 | `report_generator.py` | PDF/report generation |
 | `models/`, `storage/` | Data models and persistence helpers |
 | `tests/` | Automated tests |
-| `docs/` | Complete project documentation |
-| `scans/` | Local scan data and reports (runtime data should not be committed) |
+| `docs/` | Complete project documentation and screenshots |
+| `scans/` | Local scan data and reports; runtime data should not be committed |
 
-Phase-specific implementation notes are available in the `README_*.md` files, including `README_AGENT.md`, `README_PHASE8_AUTH_RBAC.md`, and `README_VENV_SETUP.md`.
+Phase-specific implementation notes are available in the `README_*.md` files, including [the endpoint agent guide](README_AGENT.md), [authentication and RBAC](README_PHASE8_AUTH_RBAC.md), and [virtual environment setup](README_VENV_SETUP.md).
 
 ## Requirements
 
 - Python 3.10 or newer is recommended; use a version compatible with the installed dependencies.
 - Nmap is required for network scanning and must be installed separately.
-- Internet access is needed on first setup to install Python packages and when using features that retrieve external vulnerability information.
+- Internet access is needed to install Python packages and for features that retrieve external vulnerability information.
 
 ### Install Nmap
 
 - **macOS (Homebrew):** `brew install nmap`
 - **Debian/Ubuntu:** `sudo apt install nmap`
-- **Windows:** install Nmap from [nmap.org/download.html](https://nmap.org/download.html) and ensure its installation directory is available on `PATH`.
+- **Windows:** Install Nmap from [nmap.org/download.html](https://nmap.org/download.html) and ensure its installation directory is available on `PATH`.
 
 ## Quick start
 
-Run these commands from the repository root.
+Run commands from the repository root.
 
 ### macOS / Linux
 
@@ -66,9 +79,10 @@ python3 app.py
 py -3 app.py
 ```
 
-VULNEX's bootstrap is designed to create a project-local `.venv` when needed, install dependencies into it, and reuse it on subsequent launches. The first launch requires an internet connection. If automatic bootstrap is unavailable in your checkout, create and activate the environment manually:
+VULNEX is designed to create and reuse a project-local `.venv` when its bootstrap workflow is available. The first setup requires an internet connection. If automatic bootstrap is unavailable, create the environment manually.
 
 **macOS / Linux**
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -78,6 +92,7 @@ python app.py
 ```
 
 **Windows PowerShell**
+
 ```powershell
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -86,7 +101,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-The endpoint agent has a separate requirements file for workflows that need it:
+For agent-specific dependencies, when needed:
 
 ```bash
 python -m pip install -r agent/requirements.txt
@@ -94,7 +109,7 @@ python -m pip install -r agent/requirements.txt
 
 ## Endpoint agent
 
-The project documents direct-run agent launchers for the supported platforms:
+The project documents direct-run agent launchers for supported platforms:
 
 | Platform | Launcher | Shell |
 | --- | --- | --- |
@@ -102,35 +117,35 @@ The project documents direct-run agent launchers for the supported platforms:
 | Linux | `.sh` | Terminal / Bash |
 | Windows | `.ps1` | PowerShell |
 
-The generated launcher embeds the one-time enrollment token and starts the agent in an isolated Python environment. For persistent background operation, automatic startup after reboot, and agent registration, follow the instructions in [README_AGENT.md](README_AGENT.md). The installer may require administrator/root privileges to register the platform's background service or scheduled task.
+Generated launchers are intended to include a one-time enrollment token and start the agent using an isolated Python environment. For persistent background operation, startup after reboot, and registration details, follow [README_AGENT.md](README_AGENT.md). Registering a system service or scheduled task may require administrator/root privileges.
 
-The agent is intended to collect read-only inventory data and send endpoint profiles to the configured VULNEX server. Review the data collected and server configuration before deploying it to real endpoints.
+The agent is intended to collect inventory data and send endpoint profiles to the configured VULNEX server. Review the collection scope and server configuration before deploying it to real endpoints.
 
 ## Authentication and access control
 
-VULNEX includes account approval and role-based access controls. New accounts may require administrator approval before login. Administrator and standard-user permissions differ; see [README_PHASE8_AUTH_RBAC.md](README_PHASE8_AUTH_RBAC.md) for the role matrix and authentication details.
+VULNEX includes account approval and role-based access controls. New accounts may require administrator approval before login. Administrator and standard-user permissions differ; see [README_PHASE8_AUTH_RBAC.md](README_PHASE8_AUTH_RBAC.md).
 
 Do not expose the dashboard or agent API to untrusted networks without reviewing authentication, network binding, TLS/reverse-proxy configuration, and secret handling.
 
 ## Tests
 
-From the repository root, run:
+From the repository root:
 
 ```bash
 python -m pytest -q
 ```
 
-This runs the tests available in the checkout. A successful test run does not by itself confirm that Nmap scans, platform-specific service installation, Windows endpoint collection, or external CVE lookups work on every target system; validate those workflows on the platforms where you intend to deploy VULNEX.
+A successful test run does not by itself verify Nmap scans, platform-specific service installation, Windows endpoint collection, or external CVE lookups on every target system. Validate those workflows on the platforms where you intend to deploy VULNEX.
 
 ## Security and data hygiene
 
 - Assess only systems for which you have explicit authorization.
-- Do not commit passwords, API keys, enrollment tokens, session files, private keys, or other secrets.
-- Keep local authentication/session data, logs, endpoint inventories, scan results, and reports private; they may contain sensitive information.
+- Never commit passwords, API keys, enrollment tokens, session files, private keys, or other secrets.
+- Keep authentication/session data, logs, endpoint inventories, scan results, and reports private; they may contain sensitive information.
 - Use least privilege. Do not run the entire dashboard as root/Administrator unless a documented operation specifically requires it.
-- On macOS/Linux, follow the phase-specific Nmap privilege guidance rather than running the whole dashboard with `sudo`.
+- Follow the phase-specific Nmap privilege guidance instead of running the entire dashboard with `sudo`.
 - Review agent enrollment, server URL, firewall rules, and permissions before deployment.
-- Use a trusted reverse proxy if forwarded client-IP headers are relied upon; do not trust arbitrary forwarded headers from untrusted clients.
+- Trust forwarded client-IP headers only when they come from a trusted reverse proxy.
 
 ## Documentation
 
@@ -141,4 +156,4 @@ This runs the tests available in the checkout. A successful test run does not by
 
 ## Disclaimer
 
-VULNEX is provided for authorized security assessment, defensive testing, and educational use. You are responsible for obtaining the required permissions and complying with applicable laws, policies, and third-party terms.
+VULNEX is intended for authorized security assessment, defensive testing, and educational use. You are responsible for obtaining required permissions and complying with applicable laws, policies, and third-party terms.
