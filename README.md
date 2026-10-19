@@ -19,16 +19,23 @@ VULNEX is a Python-based security assessment platform for authorized network dis
 
 ## Screenshots
 
-The screenshots below document the VULNEX interface and example assessment workflows. Before publishing screenshots, ensure that they have been redacted and do not reveal private network details, hostnames, MAC addresses, server addresses, account identifiers, enrollment tokens, or other secrets.
+Selected screenshots from the VULNEX interface and example assessment workflows. Images are stored in [`docs/screenshots/`](docs/screenshots/). The displayed values are illustrative of the captured test environment; verify that screenshots are safe to share before distributing the repository.
 
-Once the redacted images are uploaded to `docs/screenshots/`, add them here using relative paths, for example:
+| Network discovery | Endpoint agent management |
+| --- | --- |
+| ![Network discovery dashboard](docs/screenshots/vulnex_screenshot_01_redacted.png) | ![Endpoint agent management](docs/screenshots/vulnex_screenshot_02_redacted.png) |
 
-```markdown
-![Network discovery dashboard](docs/screenshots/vulnex_screenshot_01_redacted.png)
-![Endpoint agent management](docs/screenshots/vulnex_screenshot_02_redacted.png)
-![Local machine assessment](docs/screenshots/vulnex_screenshot_03_redacted.png)
-![Vulnerability dashboard](docs/screenshots/vulnex_screenshot_04_redacted.png)
-```
+| Local machine assessment | Vulnerability dashboard |
+| --- | --- |
+| ![Local machine assessment](docs/screenshots/vulnex_screenshot_03_redacted.png) | ![Vulnerability dashboard](docs/screenshots/vulnex_screenshot_04_redacted.png) |
+
+| Assessment results | Risk and remediation overview |
+| --- | --- |
+| ![Assessment results](docs/screenshots/vulnex_screenshot_05_redacted.png) | ![Risk and remediation overview](docs/screenshots/vulnex_screenshot_06_redacted.png) |
+
+| Device findings | Remediation tracking |
+| --- | --- |
+| ![Device findings](docs/screenshots/vulnex_screenshot_07_redacted.png) | ![Remediation tracking](docs/screenshots/vulnex_screenshot_08_redacted.png) |
 
 ## Project layout
 
