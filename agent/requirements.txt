@@ -1,0 +1,2 @@
+# Vulnex Agent dependencies
+# The current collector primarily uses Python standard-library APIs.

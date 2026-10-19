@@ -1,140 +1,112 @@
-import requests
+"""Network-service CVE lookup using the NVD 2.0 API and CISA KEV catalog.
+
+The module reports matches; it does not attempt exploitation. Version matching
+is deliberately conservative: CPE matches are preferred, and keyword matching
+is only used when Nmap did not provide a CPE.
+"""
+from __future__ import annotations
+
 import time
+from functools import lru_cache
 
-# ------------------------------------
-# NVD API Configuration
-# ------------------------------------
+import requests
 
-NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-
-# 🔑 Put your NVD API key here (optional but recommended)
-API_KEY = None  # Example: "abcd1234-xxxx-xxxx"
-
-# ------------------------------------
-# Service Normalization
-# ------------------------------------
-
-SERVICE_MAP = {
-    "http": "apache",
-    "ssl/http": "apache",
-    "ssh": "openssh",
-    "ftp": "vsftpd",
-    "mysql": "mysql",
-    "smb": "samba",
-    "microsoft-ds": "windows"
-}
+NVD_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+KEV_URL = "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json"
+HEADERS = {"User-Agent": "Vulnex/2.0 vulnerability-assessment-tool"}
 
 
-def normalize(service):
-    if not service:
-        return ""
-    return SERVICE_MAP.get(service.lower(), service.lower())
+def _severity(metrics: dict) -> tuple[str, float | None, float | None]:
+    for key in ("cvssMetricV40", "cvssMetricV31", "cvssMetricV30"):
+        items = metrics.get(key) or []
+        if items:
+            cvss = items[0].get("cvssData", {})
+            return str(cvss.get("baseSeverity", "UNKNOWN")), cvss.get("baseScore"), items[0].get("exploitabilityScore")
+    return "UNKNOWN", None, None
 
 
-# ------------------------------------
-# Severity Mapping
-# ------------------------------------
-
-def get_severity(score):
-    if score >= 9:
-        return "CRITICAL"
-    elif score >= 7:
-        return "HIGH"
-    elif score >= 4:
-        return "MEDIUM"
-    elif score > 0:
-        return "LOW"
-    else:
-        return "UNKNOWN"
+def _description(cve: dict) -> str:
+    for d in cve.get("descriptions", []):
+        if d.get("lang") == "en":
+            return d.get("value", "")
+    return ""
 
 
-# ------------------------------------
-# CVE Fetcher
-# ------------------------------------
+def _references(cve: dict) -> list[str]:
+    return [r.get("url") for r in cve.get("references", []) if r.get("url")]
 
-def fetch_cves(services):
-    print("\n[+] Fetching CVEs with smart matching...")
+@lru_cache(maxsize=1)
+def _kev_ids() -> set[str]:
+    try:
+        r = requests.get(KEV_URL, headers=HEADERS, timeout=12)
+        r.raise_for_status()
+        return {x.get("cveID") for x in r.json().get("vulnerabilities", []) if x.get("cveID")}
+    except Exception:
+        return set()
 
-    vulnerabilities = []
 
-    headers = {}
-    if API_KEY:
-        headers["apiKey"] = API_KEY
+def _query(params: dict) -> list[dict]:
+    try:
+        r = requests.get(NVD_URL, params=params, headers=HEADERS, timeout=20)
+        r.raise_for_status()
+        return r.json().get("vulnerabilities", [])
+    except Exception:
+        return []
 
-    for s in services:
 
-        service = normalize(s.get("service", ""))
-        version = s.get("version", "")
+def fetch_cves(ports: list[dict], cpes: list[str] | None = None, max_per_service: int = 8) -> list[dict]:
+    findings: list[dict] = []
+    kev = _kev_ids()
+    seen: set[str] = set()
+    cpes = cpes or []
 
-        # If version exists, include it; otherwise search only by service
-        query = f"{service} {version}".strip()
-
-        if not service:
+    for cpe in cpes:
+        if not cpe or cpe in ("unknown", "Unknown"):
             continue
-
-        print(f"   ↳ Querying NVD for: {query}")
-
-        try:
-            response = requests.get(
-                NVD_API,
-                params={
-                    "keywordSearch": query,
-                    "resultsPerPage": 5
-                },
-                headers=headers,
-                timeout=15
-            )
-
-            if response.status_code != 200:
-                print(f"   ⚠ API Error: {response.status_code}")
+        for item in _query({"cpeName": cpe, "resultsPerPage": max_per_service}):
+            cve = item.get("cve", {})
+            cid = cve.get("id")
+            if not cid or cid in seen:
                 continue
+            seen.add(cid)
+            severity, score, exploitability = _severity(cve.get("metrics", {}))
+            findings.append({
+                "cve": cid, "severity": severity, "score": score,
+                "exploitability_score": exploitability,
+                "known_exploited": cid in kev,
+                "description": _description(cve),
+                "references": _references(cve), "service": cpe,
+            })
+        time.sleep(0.15)
 
-            data = response.json()
-
-            total_results = data.get("totalResults", 0)
-            print(f"   → Found {total_results} results")
-
-            for item in data.get("vulnerabilities", []):
-
-                cve = item.get("cve", {})
-                cve_id = cve.get("id", "N/A")
-
-                description = "No description available"
-                if cve.get("descriptions"):
-                    description = cve["descriptions"][0].get("value", description)
-
-                score = 0
-                metrics = cve.get("metrics", {})
-
-                # Handle multiple CVSS formats safely
-                try:
-                    if "cvssMetricV31" in metrics:
-                        score = metrics["cvssMetricV31"][0]["cvssData"]["baseScore"]
-                    elif "cvssMetricV30" in metrics:
-                        score = metrics["cvssMetricV30"][0]["cvssData"]["baseScore"]
-                    elif "cvssMetricV2" in metrics:
-                        score = metrics["cvssMetricV2"][0]["cvssData"]["baseScore"]
-                except Exception:
-                    score = 0
-
-                vulnerabilities.append({
-                    "service": service,
-                    "cve": cve_id,
-                    "description": description,
-                    "score": score,
-                    "severity": get_severity(score)
-                })
-
-            # Respect NVD rate limits
-            time.sleep(1)
-
-        except requests.exceptions.Timeout:
-            print("   ⚠ Request timed out")
-        except requests.exceptions.RequestException as e:
-            print(f"   ⚠ Request failed: {e}")
-        except Exception as e:
-            print(f"   ⚠ Unexpected error: {e}")
-
-    print(f"\n[+] Total vulnerabilities collected: {len(vulnerabilities)}\n")
-
-    return vulnerabilities
+    # Conservative fallback for services where Nmap did not expose a CPE.
+    for p in ports:
+        product = (p.get("product") or "").strip()
+        version = (p.get("version") or "").strip()
+        service = (p.get("service") or "").strip()
+        if not product and not service:
+            continue
+        query = " ".join(x for x in (product, version) if x)
+        if not query:
+            query = service
+        for item in _query({"keywordSearch": query, "resultsPerPage": max_per_service}):
+            cve = item.get("cve", {})
+            cid = cve.get("id")
+            if not cid or cid in seen:
+                continue
+            # Avoid presenting a keyword hit as a confirmed product match unless
+            # NVD's applicability data contains the observed product/version text.
+            blob = str(cve.get("configurations", "")).lower()
+            if product and product.lower() not in blob and version and version.lower() not in blob:
+                continue
+            seen.add(cid)
+            severity, score, exploitability = _severity(cve.get("metrics", {}))
+            findings.append({
+                "cve": cid, "severity": severity, "score": score,
+                "exploitability_score": exploitability,
+                "known_exploited": cid in kev,
+                "description": _description(cve),
+                "references": _references(cve), "service": product or service,
+            })
+        time.sleep(0.15)
+    return findings
