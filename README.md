@@ -17,6 +17,10 @@ VULNEX is a Python-based security assessment platform for authorized network dis
 - **PDF reporting** for assessment and device findings.
 - **Local persistence and automated tests** for core application workflows.
 
+## License
+
+**VULNEX is proprietary software. All rights reserved.** This repository is public for viewing, but public visibility does not grant permission to use, copy, modify, distribute, sublicense, or commercially exploit the source code. Permission must be obtained in writing from the copyright holder unless applicable law expressly permits otherwise. See [`LICENSE`](LICENSE) for the full notice. Contact the copyright holder through the owner’s GitHub profile to request permission or a commercial license.
+
 ## Screenshots
 
 Selected screenshots from the VULNEX interface and example assessment workflows. Images are stored in [`docs/screenshots/`](docs/screenshots/). The displayed values are illustrative of the captured test environment; verify that screenshots are safe to share before distributing the repository.
@@ -102,7 +106,7 @@ python app.py
 
 ```powershell
 py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\\.venv\\Scripts\\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 python app.py
